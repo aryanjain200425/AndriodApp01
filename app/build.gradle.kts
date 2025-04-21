@@ -41,6 +41,18 @@ android {
 
 dependencies {
 
+    // AndroidX AppCompat (needed for MaterialView widgets)
+    implementation("androidx.appcompat:appcompat:1.6.1")
+
+    // Material Components for FloatingActionButton, dark‑theme widgets, etc.
+    implementation("com.google.android.material:material:1.9.0")
+
+    // ConstraintLayout (we used this in the XML)
+    implementation("androidx.constraintlayout:constraintlayout:2.1.4")
+
+    // (Optional) RecyclerView, when you swap in your album list
+    implementation("androidx.recyclerview:recyclerview:1.3.1")
+
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)

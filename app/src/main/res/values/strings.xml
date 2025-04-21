@@ -1,3 +1,5 @@
 <resources>
-    <string name="app_name">AndriodApp01</string>
+    <string name="app_name">AndroidApp01</string>
+    <string name="your_albums">Your Albums</string>
+    <string name="add_album">Add album</string>
 </resources>
