@@ -7,8 +7,13 @@
 
     <TextView
         android:id="@+id/welcomeText"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
         style="@style/WelcomeTextStyle"
-        android:text="Welcome to Photos App" />
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
+
+    <Button
+        android:id="@+id/goToNewScreenBtn"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Go to New Screen" />
 </LinearLayout>
