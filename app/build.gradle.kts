@@ -53,6 +53,9 @@ dependencies {
     // (Optional) RecyclerView, when you swap in your album list
     implementation("androidx.recyclerview:recyclerview:1.3.1")
 
+    // Gson for JSON serialization/deserialization
+    implementation("com.google.code.gson:gson:2.10.1")
+
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
