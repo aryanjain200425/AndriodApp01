@@ -55,6 +55,14 @@ public class HomeActivity extends AppCompatActivity implements AlbumAdapter.OnAl
         loadAlbums();
     }
 
+    @Override
+    public void onAlbumClick(Album album) {
+        // Navigate to AlbumViewActivity
+        Intent intent = new Intent(this, AlbumViewActivity.class);
+        intent.putExtra(AlbumViewActivity.EXTRA_ALBUM_ID, album.getId());
+        startActivity(intent);
+    }
+
     private void loadAlbums() {
         // Get albums from AlbumManager
         List<Album> albums = albumManager.getAlbums();
@@ -68,17 +76,17 @@ public class HomeActivity extends AppCompatActivity implements AlbumAdapter.OnAl
         }
     }
 
-    @Override
-    public void onAlbumClick(Album album) {
-        // Handle album click - navigate to album detail
-        // For example:
-        // Intent intent = new Intent(this, AlbumDetailActivity.class);
-        // intent.putExtra("ALBUM_ID", album.getId());
-        // startActivity(intent);
-
-        // For now, just show a toast
-        Toast.makeText(this, "Album clicked: " + album.getName(), Toast.LENGTH_SHORT).show();
-    }
+//    @Override
+//    public void onAlbumClick(Album album) {
+//        // Handle album click - navigate to album detail
+//        // For example:
+//        // Intent intent = new Intent(this, AlbumDetailActivity.class);
+//        // intent.putExtra("ALBUM_ID", album.getId());
+//        // startActivity(intent);
+//
+//        // For now, just show a toast
+//        Toast.makeText(this, "Album clicked: " + album.getName(), Toast.LENGTH_SHORT).show();
+//    }
 
     @Override
     public void onAlbumDelete(Album album) {
