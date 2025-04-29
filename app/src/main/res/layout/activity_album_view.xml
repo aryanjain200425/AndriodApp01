@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.coordinatorlayout.widget.CoordinatorLayout
+<androidx.constraintlayout.widget.ConstraintLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
@@ -7,112 +7,110 @@
     android:layout_height="match_parent"
     tools:context=".controller.AlbumViewActivity">
 
-    <com.google.android.material.appbar.AppBarLayout
+    <!-- Back button -->
+    <ImageButton
+        android:id="@+id/btnBack"
+        android:layout_width="48dp"
+        android:layout_height="0dp"
+        android:background="?attr/colorPrimaryDark"
+        android:contentDescription="Go back"
+        android:src="@android:drawable/ic_menu_revert"
+        app:layout_constraintTop_toTopOf="@id/albumNameTextView"
+        app:layout_constraintBottom_toBottomOf="@id/albumNameTextView"
+        app:layout_constraintStart_toStartOf="parent"/>
+
+    <!-- Dark header with album name and action buttons -->
+    <TextView
+        android:id="@+id/albumNameTextView"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:background="?attr/colorPrimaryDark"
+        android:padding="16dp"
+        android:textColor="@android:color/white"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/btnBack"
+        app:layout_constraintEnd_toStartOf="@+id/editAlbumNameButton"
+        tools:text="Album Name"/>
+
+    <!-- Edit album name button -->
+    <ImageButton
+        android:id="@+id/editAlbumNameButton"
+        android:layout_width="48dp"
+        android:layout_height="0dp"
+        android:background="?attr/colorPrimaryDark"
+        android:contentDescription="Edit album name"
+        android:src="@android:drawable/ic_menu_edit"
+        app:layout_constraintTop_toTopOf="@id/albumNameTextView"
+        app:layout_constraintBottom_toBottomOf="@id/albumNameTextView"
+        app:layout_constraintEnd_toStartOf="@+id/slideshowButton"/>
+
+    <!-- Slideshow button -->
+    <ImageButton
+        android:id="@+id/slideshowButton"
+        android:layout_width="48dp"
+        android:layout_height="0dp"
+        android:background="?attr/colorPrimaryDark"
+        android:contentDescription="View slideshow"
+        android:src="@android:drawable/ic_menu_slideshow"
+        app:layout_constraintTop_toTopOf="@id/albumNameTextView"
+        app:layout_constraintBottom_toBottomOf="@id/albumNameTextView"
+        app:layout_constraintEnd_toEndOf="parent"/>
+
+    <!-- Photo count text -->
+    <TextView
+        android:id="@+id/photoCountTextView"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:theme="@style/Theme.AppCompat.Light.DarkActionBar">
+        android:layout_marginStart="12dp"
+        android:layout_marginEnd="12dp"
+        android:layout_marginTop="8dp"
+        android:textSize="14sp"
+        android:textColor="@android:color/darker_gray"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/albumNameTextView"
+        tools:text="12 photos" />
 
-        <androidx.appcompat.widget.Toolbar
-            android:id="@+id/toolbar"
-            android:layout_width="match_parent"
-            android:layout_height="?attr/actionBarSize"
-            android:background="#4527A0"
-            app:titleTextColor="@android:color/white"
-            app:popupTheme="@style/Theme.AppCompat.Light" />
+    <!-- Empty state message -->
+    <TextView
+        android:id="@+id/emptyAlbumTextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="No photos in this album"
+        android:textSize="18sp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
-    </com.google.android.material.appbar.AppBarLayout>
+    <!-- Photos grid -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/photosRecyclerView"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:clipToPadding="false"
+        android:padding="8dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/photoCountTextView"
+        tools:listitem="@layout/item_photo" />
 
-    <androidx.constraintlayout.widget.ConstraintLayout
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        app:layout_behavior="@string/appbar_scrolling_view_behavior">
-
-        <LinearLayout
-            android:id="@+id/albumInfoLayout"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:padding="12dp"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent">
-
-            <TextView
-                android:id="@+id/albumNameTextView"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:textSize="18sp"
-                android:textStyle="bold"
-                tools:text="Album Name" />
-
-            <ImageButton
-                android:id="@+id/editAlbumNameButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="Edit album name"
-                android:padding="8dp"
-                app:srcCompat="@android:drawable/ic_menu_edit" />
-
-            <ImageButton
-                android:id="@+id/slideshowButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="View slideshow"
-                android:padding="8dp"
-                app:srcCompat="@android:drawable/ic_menu_slideshow" />
-        </LinearLayout>
-
-        <TextView
-            android:id="@+id/photoCountTextView"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="12dp"
-            android:layout_marginEnd="12dp"
-            android:textSize="14sp"
-            android:textColor="@android:color/darker_gray"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/albumInfoLayout"
-            tools:text="12 photos" />
-
-        <TextView
-            android:id="@+id/emptyAlbumTextView"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="No photos in this album"
-            android:textSize="18sp"
-            android:visibility="gone"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
-
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/photosRecyclerView"
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_marginTop="8dp"
-            android:clipToPadding="false"
-            android:padding="4dp"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/photoCountTextView"
-            tools:listitem="@layout/item_photo" />
-
-    </androidx.constraintlayout.widget.ConstraintLayout>
-
+    <!-- Add photo floating action button -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fabAddPhoto"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="bottom|end"
-        android:layout_margin="16dp"
         android:contentDescription="Add photo"
-        app:srcCompat="@android:drawable/ic_input_add" />
+        app:srcCompat="@android:drawable/ic_input_add"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="16dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintHorizontal_bias="1.0"
+        app:layout_constraintBottom_toBottomOf="parent"/>
 
-</androidx.coordinatorlayout.widget.CoordinatorLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>

@@ -16,7 +16,6 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.widget.Toolbar;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -41,7 +40,8 @@ public class AlbumViewActivity extends AppCompatActivity implements
     public static final String EXTRA_ALBUM_ID = "album_id";
 
     private RecyclerView photosRecyclerView;
-
+    private TextView albumNameTextView;
+    private TextView photoCountTextView;
     private TextView emptyAlbumTextView;
     private FloatingActionButton fabAddPhoto;
 
@@ -52,6 +52,7 @@ public class AlbumViewActivity extends AppCompatActivity implements
 
     private ImageButton editAlbumNameButton;
     private ImageButton slideshowButton;
+    private ImageButton btnBack;
 
     // Activity result launcher for selecting photos
     private final ActivityResultLauncher<String> photoPickerLauncher = registerForActivityResult(
@@ -81,15 +82,9 @@ public class AlbumViewActivity extends AppCompatActivity implements
             return;
         }
 
-        // Set up toolbar
-        Toolbar toolbar = findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
-        if (getSupportActionBar() != null) {
-            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-            getSupportActionBar().setTitle(album.getName());
-        }
-
         // Initialize views
+        albumNameTextView = findViewById(R.id.albumNameTextView);
+        photoCountTextView = findViewById(R.id.photoCountTextView);
         photosRecyclerView = findViewById(R.id.photosRecyclerView);
         emptyAlbumTextView = findViewById(R.id.emptyAlbumTextView);
         fabAddPhoto = findViewById(R.id.fabAddPhoto);
@@ -101,8 +96,17 @@ public class AlbumViewActivity extends AppCompatActivity implements
         slideshowButton.setOnClickListener(v -> startSlideshow());
         slideshowButton.setEnabled(!album.getPhotos().isEmpty());
 
+        btnBack = findViewById(R.id.btnBack);
+        btnBack.setOnClickListener(v -> onBackPressed());
+
         // Set up RecyclerView
         photosRecyclerView.setLayoutManager(new GridLayoutManager(this, 2));
+
+        // Set album name in header
+        albumNameTextView.setText(album.getName());
+
+        // Set up photo count text
+        updatePhotoCountText();
 
         // Set up UI
         updateAlbumInfo();
@@ -111,6 +115,13 @@ public class AlbumViewActivity extends AppCompatActivity implements
         fabAddPhoto.setOnClickListener(v -> {
             photoPickerLauncher.launch("image/*");
         });
+    }
+
+    // Add method to update photo count text
+    private void updatePhotoCountText() {
+        int photoCount = album.getPhotos().size();
+        String photoCountText = photoCount + (photoCount == 1 ? " photo" : " photos");
+        photoCountTextView.setText(photoCountText);
     }
 
     // Add this method to handle the slideshow button click
@@ -144,9 +155,7 @@ public class AlbumViewActivity extends AppCompatActivity implements
                         albumManager.saveAlbum(album);
 
                         // Update UI
-                        if (getSupportActionBar() != null) {
-                            getSupportActionBar().setTitle(newName);
-                        }
+                        albumNameTextView.setText(newName);
 
                         Toast.makeText(this, "Album renamed", Toast.LENGTH_SHORT).show();
                     }
@@ -155,6 +164,8 @@ public class AlbumViewActivity extends AppCompatActivity implements
                 .show();
     }
 
+    // We no longer need this method since we're using a dedicated back button
+    // If you want to keep it for future toolbar use, you can leave it
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         if (item.getItemId() == android.R.id.home) {
@@ -167,6 +178,9 @@ public class AlbumViewActivity extends AppCompatActivity implements
     private void updateAlbumInfo() {
         // Set up adapter with photos
         List<Photo> photos = album.getPhotos();
+
+        // Update photo count text
+        updatePhotoCountText();
 
         if (photos.isEmpty()) {
             emptyAlbumTextView.setVisibility(View.VISIBLE);
