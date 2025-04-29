@@ -8,6 +8,7 @@ import android.text.InputType;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -35,14 +36,16 @@ public class AlbumViewActivity extends AppCompatActivity implements PhotoAdapter
     public static final String EXTRA_ALBUM_ID = "album_id";
 
     private RecyclerView photosRecyclerView;
-    private TextView albumNameTextView;
-    private TextView photoCountTextView;
+
     private TextView emptyAlbumTextView;
     private FloatingActionButton fabAddPhoto;
 
     private AlbumManager albumManager;
     private Album album;
     private PhotoAdapter photoAdapter;
+
+    private ImageButton editAlbumNameButton;
+    private ImageButton slideshowButton;
 
     // Activity result launcher for selecting photos
     private final ActivityResultLauncher<String> photoPickerLauncher = registerForActivityResult(
@@ -58,24 +61,6 @@ public class AlbumViewActivity extends AppCompatActivity implements PhotoAdapter
         // Initialize album manager
         albumManager = AlbumManager.getInstance(this);
 
-        // Set up toolbar
-        Toolbar toolbar = findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
-        if (getSupportActionBar() != null) {
-            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-            getSupportActionBar().setTitle("Album");
-        }
-
-        // Initialize views
-        albumNameTextView = findViewById(R.id.albumNameTextView);
-        photoCountTextView = findViewById(R.id.photoCountTextView);
-        photosRecyclerView = findViewById(R.id.photosRecyclerView);
-        emptyAlbumTextView = findViewById(R.id.emptyAlbumTextView);
-        fabAddPhoto = findViewById(R.id.fabAddPhoto);
-
-        // Set up RecyclerView
-        photosRecyclerView.setLayoutManager(new GridLayoutManager(this, 2));
-
         // Get album ID from intent
         String albumId = getIntent().getStringExtra(EXTRA_ALBUM_ID);
         if (albumId != null) {
@@ -89,6 +74,29 @@ public class AlbumViewActivity extends AppCompatActivity implements PhotoAdapter
             return;
         }
 
+        // Set up toolbar
+        Toolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+            getSupportActionBar().setTitle(album.getName());
+        }
+
+        // Initialize views
+        photosRecyclerView = findViewById(R.id.photosRecyclerView);
+        emptyAlbumTextView = findViewById(R.id.emptyAlbumTextView);
+        fabAddPhoto = findViewById(R.id.fabAddPhoto);
+
+        editAlbumNameButton = findViewById(R.id.editAlbumNameButton);
+        editAlbumNameButton.setOnClickListener(v -> showEditAlbumNameDialog());
+
+        slideshowButton = findViewById(R.id.slideshowButton);
+        slideshowButton.setOnClickListener(v -> startSlideshow());
+        slideshowButton.setEnabled(!album.getPhotos().isEmpty());
+
+        // Set up RecyclerView
+        photosRecyclerView.setLayoutManager(new GridLayoutManager(this, 2));
+
         // Set up UI
         updateAlbumInfo();
 
@@ -96,6 +104,50 @@ public class AlbumViewActivity extends AppCompatActivity implements PhotoAdapter
         fabAddPhoto.setOnClickListener(v -> {
             photoPickerLauncher.launch("image/*");
         });
+    }
+
+    // Add this method to handle the slideshow button click
+    private void startSlideshow() {
+        if (album.getPhotos().isEmpty()) {
+            Toast.makeText(this, "Add photos to view slideshow", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        // Start slideshow activity
+        SlideshowActivity.start(this, album.getId());
+    }
+
+
+
+    private void showEditAlbumNameDialog() {
+        // Create an EditText for the dialog
+        final EditText input = new EditText(this);
+        input.setInputType(InputType.TYPE_CLASS_TEXT);
+        input.setText(album.getName()); // Pre-fill with current name
+        input.setSelectAllOnFocus(true); // Select all text when dialog opens
+
+        new MaterialAlertDialogBuilder(this)
+                .setTitle("Rename Album")
+                .setView(input)
+                .setPositiveButton("Save", (dialog, which) -> {
+                    String newName = input.getText().toString().trim();
+                    if (!newName.isEmpty()) {
+                        // Update album name
+                        album.setName(newName);
+
+                        // Save changes
+                        albumManager.saveAlbum(album);
+
+                        // Update UI
+                        if (getSupportActionBar() != null) {
+                            getSupportActionBar().setTitle(newName);
+                        }
+
+                        Toast.makeText(this, "Album renamed", Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
     }
 
     @Override
@@ -108,12 +160,6 @@ public class AlbumViewActivity extends AppCompatActivity implements PhotoAdapter
     }
 
     private void updateAlbumInfo() {
-        albumNameTextView.setText(album.getName());
-
-        int photoCount = album.getPhotoCount();
-        String photoCountText = photoCount + " " + (photoCount == 1 ? "photo" : "photos");
-        photoCountTextView.setText(photoCountText);
-
         // Set up adapter with photos
         List<Photo> photos = album.getPhotos();
 

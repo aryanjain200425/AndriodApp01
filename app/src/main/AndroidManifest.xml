@@ -36,6 +36,10 @@
             android:name=".controller.AlbumViewActivity"
             android:exported="false"
             android:theme="@style/Theme.AndroidApp01" />
+        <activity
+            android:name=".controller.SlideshowActivity"
+            android:exported="false"
+            android:theme="@style/Theme.AndroidApp01" />
     </application>
 
 </manifest>
