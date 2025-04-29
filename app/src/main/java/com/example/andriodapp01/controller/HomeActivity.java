@@ -3,6 +3,7 @@ package com.example.andriodapp01.controller;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
+import android.widget.ImageButton;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -23,6 +24,7 @@ public class HomeActivity extends AppCompatActivity implements AlbumAdapter.OnAl
     private RecyclerView albumRecyclerView;
     private AlbumAdapter albumAdapter;
     private FloatingActionButton fabAdd;
+    private ImageButton btnSearch;
     private AlbumManager albumManager;
 
     @Override
@@ -36,6 +38,7 @@ public class HomeActivity extends AppCompatActivity implements AlbumAdapter.OnAl
         // Initialize views
         albumRecyclerView = findViewById(R.id.albumRecyclerView);
         fabAdd = findViewById(R.id.fabAdd);
+        btnSearch = findViewById(R.id.btnSearch);
 
         // Set up RecyclerView
         albumRecyclerView.setLayoutManager(new GridLayoutManager(this, 2));
@@ -44,6 +47,13 @@ public class HomeActivity extends AppCompatActivity implements AlbumAdapter.OnAl
         fabAdd.setOnClickListener(v -> {
             // Launch CreateAlbumActivity when FAB is clicked
             Intent intent = new Intent(HomeActivity.this, CreateAlbumActivity.class);
+            startActivity(intent);
+        });
+
+        // Set up Search button click listener
+        btnSearch.setOnClickListener(v -> {
+            // Launch SearchActivity when Search button is clicked
+            Intent intent = new Intent(HomeActivity.this, SearchActivity.class);
             startActivity(intent);
         });
     }
@@ -75,18 +85,6 @@ public class HomeActivity extends AppCompatActivity implements AlbumAdapter.OnAl
             albumAdapter.updateAlbums(albums);
         }
     }
-
-//    @Override
-//    public void onAlbumClick(Album album) {
-//        // Handle album click - navigate to album detail
-//        // For example:
-//        // Intent intent = new Intent(this, AlbumDetailActivity.class);
-//        // intent.putExtra("ALBUM_ID", album.getId());
-//        // startActivity(intent);
-//
-//        // For now, just show a toast
-//        Toast.makeText(this, "Album clicked: " + album.getName(), Toast.LENGTH_SHORT).show();
-//    }
 
     @Override
     public void onAlbumDelete(Album album) {

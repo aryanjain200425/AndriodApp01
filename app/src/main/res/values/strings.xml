@@ -11,4 +11,13 @@
     <string name="remove_photo">Remove Photo</string>
     <string name="album_cover">Album Cover</string>
     <string name="delete_album">Delete</string>
+    <!-- Add these to your strings.xml file -->
+    <string name="search_photos">Search Photos</string>
+    <string name="search">Search</string>
+    <string name="search_results">Search Results</string>
+    <string name="search_and">AND</string>
+    <string name="search_or">OR</string>
+    <string name="person">Person</string>
+    <string name="location">Location</string>
+    <string name="no_results_found">No matching photos found</string>
 </resources>

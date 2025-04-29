@@ -40,6 +40,10 @@
             android:name=".controller.SlideshowActivity"
             android:exported="false"
             android:theme="@style/Theme.AndroidApp01" />
+        <activity
+            android:name=".controller.SearchActivity"
+            android:exported="false"
+            android:theme="@style/Theme.AndroidApp01"/>
     </application>
 
 </manifest>
