@@ -53,6 +53,7 @@ public class AlbumViewActivity extends AppCompatActivity implements
     private ImageButton editAlbumNameButton;
     private ImageButton slideshowButton;
     private ImageButton btnBack;
+    private ImageButton btnSearch;
 
     // Activity result launcher for selecting photos
     private final ActivityResultLauncher<String> photoPickerLauncher = registerForActivityResult(
@@ -99,6 +100,10 @@ public class AlbumViewActivity extends AppCompatActivity implements
         btnBack = findViewById(R.id.btnBack);
         btnBack.setOnClickListener(v -> onBackPressed());
 
+        // Initialize and set up the search button
+        btnSearch = findViewById(R.id.btnSearch);
+        btnSearch.setOnClickListener(v -> startSearchActivity());
+
         // Set up RecyclerView
         photosRecyclerView.setLayoutManager(new GridLayoutManager(this, 2));
 
@@ -115,6 +120,12 @@ public class AlbumViewActivity extends AppCompatActivity implements
         fabAddPhoto.setOnClickListener(v -> {
             photoPickerLauncher.launch("image/*");
         });
+    }
+
+    // Add method to start the SearchActivity
+    private void startSearchActivity() {
+        Intent intent = new Intent(this, SearchActivity.class);
+        startActivity(intent);
     }
 
     // Add method to update photo count text

@@ -56,6 +56,18 @@
         android:src="@android:drawable/ic_menu_slideshow"
         app:layout_constraintTop_toTopOf="@id/albumNameTextView"
         app:layout_constraintBottom_toBottomOf="@id/albumNameTextView"
+        app:layout_constraintEnd_toStartOf="@+id/btnSearch"/>
+
+    <!-- Search button -->
+    <ImageButton
+        android:id="@+id/btnSearch"
+        android:layout_width="48dp"
+        android:layout_height="0dp"
+        android:background="?attr/colorPrimaryDark"
+        android:contentDescription="Search photos"
+        android:src="@android:drawable/ic_menu_search"
+        app:layout_constraintTop_toTopOf="@id/albumNameTextView"
+        app:layout_constraintBottom_toBottomOf="@id/albumNameTextView"
         app:layout_constraintEnd_toEndOf="parent"/>
 
     <!-- Photo count text -->
