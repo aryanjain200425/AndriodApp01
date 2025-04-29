@@ -110,6 +110,33 @@ public class Photo implements Serializable {
         tagIds.remove(tagId);
     }
 
+    // Helper method to check if photo has a tag of specific type
+    public boolean hasTagOfType(Context context, String tagType) {
+        TagManager tagManager = TagManager.getInstance(context);
+        for (String tagId : tagIds) {
+            Tag tag = tagManager.getTagById(tagId);
+            if (tag != null && tag.getType().equals(tagType)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // Get tags of a specific type
+    public List<Tag> getTagsOfType(Context context, String tagType) {
+        List<Tag> result = new ArrayList<>();
+        TagManager tagManager = TagManager.getInstance(context);
+
+        for (String tagId : tagIds) {
+            Tag tag = tagManager.getTagById(tagId);
+            if (tag != null && tag.getType().equals(tagType)) {
+                result.add(tag);
+            }
+        }
+
+        return result;
+    }
+
     // Get a Bitmap for the photo
     public Bitmap getBitmap() {
         if (localPath != null) {

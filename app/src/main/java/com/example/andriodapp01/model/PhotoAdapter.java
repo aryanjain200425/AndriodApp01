@@ -23,6 +23,7 @@ public class PhotoAdapter extends RecyclerView.Adapter<PhotoAdapter.PhotoViewHol
     private Context context;
     private OnPhotoActionListener listener;
     private Album currentAlbum;
+    private TagManager tagManager;
 
     // Interface for photo actions
     public interface OnPhotoActionListener {
@@ -38,6 +39,7 @@ public class PhotoAdapter extends RecyclerView.Adapter<PhotoAdapter.PhotoViewHol
         this.context = context;
         this.listener = listener;
         this.currentAlbum = null; // Will be set separately if needed
+        this.tagManager = TagManager.getInstance(context);
     }
 
     public void setCurrentAlbum(Album album) {
@@ -109,8 +111,12 @@ public class PhotoAdapter extends RecyclerView.Adapter<PhotoAdapter.PhotoViewHol
 
             // Add tag chips dynamically based on photo.getTagIds()
             for (String tagId : tagIds) {
+                // Get the actual tag from TagManager
+                Tag tag = tagManager.getTagById(tagId);
+                if (tag == null) continue; // Skip if tag not found
+
                 Chip chip = new Chip(context);
-                chip.setText(tagId);
+                chip.setText(tag.getName()); // Use tag.getName() to display "type:value" format
                 chip.setCloseIconVisible(true);
                 chip.setClickable(true);
 

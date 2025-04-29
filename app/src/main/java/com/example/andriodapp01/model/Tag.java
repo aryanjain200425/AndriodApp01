@@ -6,13 +6,22 @@ import java.util.List;
 import java.util.UUID;
 
 public class Tag implements Serializable {
+    public static final String TYPE_LOCATION = "location";
+    public static final String TYPE_PERSON = "person";
+
     private String id;
-    private String name;
+    private String type; // "location" or "person"
+    private String value; // The actual name of place or person
     private List<String> photoIds; // Store IDs of associated photos
 
-    public Tag(String name) {
+    public Tag(String type, String value) {
         this.id = UUID.randomUUID().toString();
-        this.name = name;
+        // Validate type is either "location" or "person"
+        if (!TYPE_LOCATION.equals(type) && !TYPE_PERSON.equals(type)) {
+            throw new IllegalArgumentException("Tag type must be either 'location' or 'person'");
+        }
+        this.type = type;
+        this.value = value;
         this.photoIds = new ArrayList<>();
     }
 
@@ -20,12 +29,21 @@ public class Tag implements Serializable {
         return id;
     }
 
-    public String getName() {
-        return name;
+    public String getType() {
+        return type;
     }
 
-    public void setName(String name) {
-        this.name = name;
+    public String getValue() {
+        return value;
+    }
+
+    public void setValue(String value) {
+        this.value = value;
+    }
+
+    // Get the full tag name in format "type:value"
+    public String getName() {
+        return type + ":" + value;
     }
 
     public List<String> getPhotoIds() {

@@ -26,6 +26,8 @@ import com.example.andriodapp01.model.AlbumManager;
 import com.example.andriodapp01.model.Photo;
 import com.example.andriodapp01.model.PhotoAdapter;
 import com.example.andriodapp01.model.MovePhotoDialog;
+import com.example.andriodapp01.model.Tag;
+import com.example.andriodapp01.model.TagManager;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
@@ -44,6 +46,7 @@ public class AlbumViewActivity extends AppCompatActivity implements
     private FloatingActionButton fabAddPhoto;
 
     private AlbumManager albumManager;
+    private TagManager tagManager;
     private Album album;
     private PhotoAdapter photoAdapter;
 
@@ -61,8 +64,9 @@ public class AlbumViewActivity extends AppCompatActivity implements
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_album_view);
 
-        // Initialize album manager
+        // Initialize managers
         albumManager = AlbumManager.getInstance(this);
+        tagManager = TagManager.getInstance(this);
 
         // Get album ID from intent
         String albumId = getIntent().getStringExtra(EXTRA_ALBUM_ID);
@@ -235,27 +239,68 @@ public class AlbumViewActivity extends AppCompatActivity implements
 
     @Override
     public void onAddTag(Photo photo, int position) {
-        // Show dialog to enter tag
-        final EditText input = new EditText(this);
-        input.setInputType(InputType.TYPE_CLASS_TEXT);
+        // Show tag type selection dialog
+        showTagTypeSelectionDialog(photo, position);
+    }
+
+    private void showTagTypeSelectionDialog(Photo photo, int position) {
+        final String[] tagTypes = {"Person", "Location"};
 
         new MaterialAlertDialogBuilder(this)
                 .setTitle("Add Tag")
-                .setMessage("Enter a tag for this photo:")
-                .setView(input)
+                .setItems(tagTypes, (dialog, which) -> {
+                    switch (which) {
+                        case 0: // Person
+                            showTagInputDialog(photo, position, Tag.TYPE_PERSON);
+                            break;
+                        case 1: // Location
+                            showTagInputDialog(photo, position, Tag.TYPE_LOCATION);
+                            break;
+                    }
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private void showTagInputDialog(Photo photo, int position, String tagType) {
+        showTagInputDialog(photo, position, tagType, false);
+    }
+
+    private void showTagInputDialog(Photo photo, int position, String tagType, boolean showNextType) {
+        // Create an EditText with prefix
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_tag_input, null);
+        TextView prefixTextView = dialogView.findViewById(R.id.prefixTextView);
+        EditText valueEditText = dialogView.findViewById(R.id.valueEditText);
+
+        // Set the prefix based on tag type
+        String prefix = tagType + ":";
+        prefixTextView.setText(prefix);
+
+        // Set title based on tag type
+        String title = tagType.equals(Tag.TYPE_PERSON) ? "Add Person Tag" : "Add Location Tag";
+
+        new MaterialAlertDialogBuilder(this)
+                .setTitle(title)
+                .setView(dialogView)
                 .setPositiveButton("Add", (dialog, which) -> {
-                    String tag = input.getText().toString().trim();
-                    if (!tag.isEmpty()) {
-                        // Add tag to photo
-                        photo.addTagId(tag);
+                    String value = valueEditText.getText().toString().trim();
+                    if (!value.isEmpty()) {
+                        // Create and add tag
+                        Tag tag = tagManager.createTag(tagType, value);
+                        photo.addTagId(tag.getId());
 
                         // Save album with updated photo
                         albumManager.saveAlbum(album);
 
-                        // Update UI - this will make the chip group visible
+                        // Update UI
                         photoAdapter.notifyItemChanged(position);
 
-                        Toast.makeText(this, "Tag added", Toast.LENGTH_SHORT).show();
+                        // If we need to show the next tag type (for "Both" option)
+                        if (showNextType) {
+                            showTagInputDialog(photo, position, Tag.TYPE_LOCATION);
+                        } else {
+                            Toast.makeText(this, "Tag added", Toast.LENGTH_SHORT).show();
+                        }
                     }
                 })
                 .setNegativeButton("Cancel", null)
@@ -264,8 +309,12 @@ public class AlbumViewActivity extends AppCompatActivity implements
 
     @Override
     public void onTagClick(String tagId, Photo photo) {
-        // Future: Filter photos by tag or show tag details
-        Toast.makeText(this, "Tag: " + tagId, Toast.LENGTH_SHORT).show();
+        // Get the tag
+        Tag tag = tagManager.getTagById(tagId);
+        if (tag != null) {
+            // Show tag info
+            Toast.makeText(this, "Tag: " + tag.getName(), Toast.LENGTH_SHORT).show();
+        }
     }
 
     @Override
