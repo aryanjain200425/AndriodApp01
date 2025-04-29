@@ -3,6 +3,7 @@ package com.example.andriodapp01.controller;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.GridLayoutManager;
@@ -12,20 +13,25 @@ import com.example.andriodapp01.R;
 import com.example.andriodapp01.model.AlbumAdapter;
 import com.example.andriodapp01.model.Album;
 import com.example.andriodapp01.model.AlbumManager;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import java.util.List;
 
-public class HomeActivity extends AppCompatActivity {
+public class HomeActivity extends AppCompatActivity implements AlbumAdapter.OnAlbumActionListener {
 
     private RecyclerView albumRecyclerView;
     private AlbumAdapter albumAdapter;
     private FloatingActionButton fabAdd;
+    private AlbumManager albumManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_home);
+
+        // Initialize album manager
+        albumManager = AlbumManager.getInstance(this);
 
         // Initialize views
         albumRecyclerView = findViewById(R.id.albumRecyclerView);
@@ -35,13 +41,10 @@ public class HomeActivity extends AppCompatActivity {
         albumRecyclerView.setLayoutManager(new GridLayoutManager(this, 2));
 
         // Set up FAB click listener
-        fabAdd.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                // Launch CreateAlbumActivity when FAB is clicked
-                Intent intent = new Intent(HomeActivity.this, CreateAlbumActivity.class);
-                startActivity(intent);
-            }
+        fabAdd.setOnClickListener(v -> {
+            // Launch CreateAlbumActivity when FAB is clicked
+            Intent intent = new Intent(HomeActivity.this, CreateAlbumActivity.class);
+            startActivity(intent);
         });
     }
 
@@ -54,15 +57,51 @@ public class HomeActivity extends AppCompatActivity {
 
     private void loadAlbums() {
         // Get albums from AlbumManager
-        List<Album> albums = AlbumManager.getInstance(this).getAlbums();
+        List<Album> albums = albumManager.getAlbums();
 
         // Initialize adapter if needed or update existing one
         if (albumAdapter == null) {
-            albumAdapter = new AlbumAdapter(albums, this);
+            albumAdapter = new AlbumAdapter(albums, this, this); // Pass 'this' as the listener
             albumRecyclerView.setAdapter(albumAdapter);
         } else {
             albumAdapter.updateAlbums(albums);
-            albumAdapter.notifyDataSetChanged();
         }
+    }
+
+    @Override
+    public void onAlbumClick(Album album) {
+        // Handle album click - navigate to album detail
+        // For example:
+        // Intent intent = new Intent(this, AlbumDetailActivity.class);
+        // intent.putExtra("ALBUM_ID", album.getId());
+        // startActivity(intent);
+
+        // For now, just show a toast
+        Toast.makeText(this, "Album clicked: " + album.getName(), Toast.LENGTH_SHORT).show();
+    }
+
+    @Override
+    public void onAlbumDelete(Album album) {
+        // Show confirmation dialog before deleting
+        new MaterialAlertDialogBuilder(this)
+                .setTitle("Delete Album")
+                .setMessage("Are you sure you want to delete the album \"" + album.getName() + "\"? This action cannot be undone.")
+                .setNegativeButton("Cancel", null)
+                .setPositiveButton("Delete", (dialog, which) -> {
+                    // Delete the album
+                    deleteAlbum(album);
+                })
+                .show();
+    }
+
+    private void deleteAlbum(Album album) {
+        // Delete from storage using AlbumManager
+        albumManager.deleteAlbum(album.getId());
+
+        // Update UI using adapter method
+        albumAdapter.removeAlbum(album);
+
+        // Show confirmation to user
+        Toast.makeText(this, "Album \"" + album.getName() + "\" deleted", Toast.LENGTH_SHORT).show();
     }
 }

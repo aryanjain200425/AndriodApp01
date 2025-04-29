@@ -28,10 +28,6 @@
 
         <!-- Add this new activity declaration -->
         <activity
-            android:name=".controller.NewScreenActivity"
-            android:exported="false"
-            android:theme="@style/Theme.AndroidApp01" />
-        <activity
             android:name=".controller.CreateAlbumActivity"
             android:exported="false"
             android:theme="@style/Theme.AndroidApp01" />

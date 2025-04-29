@@ -5,6 +5,7 @@ import android.graphics.Bitmap;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -12,8 +13,6 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.andriodapp01.R;
-import com.example.andriodapp01.model.Album;
-import com.example.andriodapp01.model.Photo;
 
 import java.util.List;
 
@@ -21,14 +20,23 @@ public class AlbumAdapter extends RecyclerView.Adapter<AlbumAdapter.AlbumViewHol
 
     private List<Album> albums;
     private Context context;
+    private OnAlbumActionListener listener;
 
-    public AlbumAdapter(List<Album> albums, Context context) {
+    // Interface for album actions
+    public interface OnAlbumActionListener {
+        void onAlbumClick(Album album);
+        void onAlbumDelete(Album album);
+    }
+
+    public AlbumAdapter(List<Album> albums, Context context, OnAlbumActionListener listener) {
         this.albums = albums;
         this.context = context;
+        this.listener = listener;
     }
 
     public void updateAlbums(List<Album> newAlbums) {
         this.albums = newAlbums;
+        notifyDataSetChanged();
     }
 
     @NonNull
@@ -68,11 +76,16 @@ public class AlbumAdapter extends RecyclerView.Adapter<AlbumAdapter.AlbumViewHol
         }
 
         // Set click listener to open album
-        holder.itemView.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                // TODO: Open album detail activity
-                // This functionality could be implemented in future updates
+        holder.itemView.setOnClickListener(v -> {
+            if (listener != null) {
+                listener.onAlbumClick(album);
+            }
+        });
+
+        // Set click listener for delete button
+        holder.deleteButton.setOnClickListener(v -> {
+            if (listener != null) {
+                listener.onAlbumDelete(album);
             }
         });
     }
@@ -82,16 +95,26 @@ public class AlbumAdapter extends RecyclerView.Adapter<AlbumAdapter.AlbumViewHol
         return albums.size();
     }
 
+    public void removeAlbum(Album album) {
+        int position = albums.indexOf(album);
+        if (position != -1) {
+            albums.remove(position);
+            notifyItemRemoved(position);
+        }
+    }
+
     static class AlbumViewHolder extends RecyclerView.ViewHolder {
         ImageView albumCoverImageView;
         TextView albumNameTextView;
         TextView photoCountTextView;
+        ImageButton deleteButton;
 
         AlbumViewHolder(View itemView) {
             super(itemView);
             albumCoverImageView = itemView.findViewById(R.id.albumCoverImageView);
             albumNameTextView = itemView.findViewById(R.id.albumNameTextView);
             photoCountTextView = itemView.findViewById(R.id.photoCountTextView);
+            deleteButton = itemView.findViewById(R.id.btnDeleteAlbum);
         }
     }
 }

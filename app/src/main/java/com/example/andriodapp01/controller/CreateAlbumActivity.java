@@ -135,6 +135,15 @@ public class CreateAlbumActivity extends AppCompatActivity {
             return;
         }
 
+        AlbumManager albumManager = AlbumManager.getInstance(this);
+        List<Album> existing = albumManager.getAlbums();
+        for (Album a : existing) {
+            if (a.getName().equalsIgnoreCase(albumName)) {
+                Toast.makeText(this, "Album name already taken", Toast.LENGTH_SHORT).show();
+                return;
+            }
+        }
+
         if (selectedPhotoUris.isEmpty()) {
             Toast.makeText(this, "Please add at least one photo", Toast.LENGTH_SHORT).show();
             return;
