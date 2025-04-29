@@ -63,9 +63,22 @@
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:contentDescription="Add tag"
                 android:src="@android:drawable/ic_menu_add"
-                app:layout_constraintEnd_toStartOf="@+id/btnDeletePhoto"
+                app:layout_constraintEnd_toStartOf="@+id/btnMovePhoto"
                 app:layout_constraintHorizontal_chainStyle="packed"
                 app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:tint="?attr/colorPrimary" />
+
+            <ImageButton
+                android:id="@+id/btnMovePhoto"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:layout_marginStart="24dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Move photo"
+                android:src="@android:drawable/ic_menu_share"
+                app:layout_constraintEnd_toStartOf="@+id/btnDeletePhoto"
+                app:layout_constraintStart_toEndOf="@+id/btnAddTag"
                 app:layout_constraintTop_toTopOf="parent"
                 app:tint="?attr/colorPrimary" />
 
@@ -78,7 +91,7 @@
                 android:contentDescription="Delete photo"
                 android:src="@android:drawable/ic_menu_delete"
                 app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toEndOf="@+id/btnAddTag"
+                app:layout_constraintStart_toEndOf="@+id/btnMovePhoto"
                 app:layout_constraintTop_toTopOf="parent"
                 app:tint="@android:color/holo_red_dark" />
 

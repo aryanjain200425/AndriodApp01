@@ -25,13 +25,16 @@ import com.example.andriodapp01.model.Album;
 import com.example.andriodapp01.model.AlbumManager;
 import com.example.andriodapp01.model.Photo;
 import com.example.andriodapp01.model.PhotoAdapter;
+import com.example.andriodapp01.model.MovePhotoDialog;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class AlbumViewActivity extends AppCompatActivity implements PhotoAdapter.OnPhotoActionListener {
+public class AlbumViewActivity extends AppCompatActivity implements
+        PhotoAdapter.OnPhotoActionListener,
+        MovePhotoDialog.OnPhotoMoveListener {
 
     public static final String EXTRA_ALBUM_ID = "album_id";
 
@@ -117,8 +120,6 @@ public class AlbumViewActivity extends AppCompatActivity implements PhotoAdapter
         SlideshowActivity.start(this, album.getId());
     }
 
-
-
     private void showEditAlbumNameDialog() {
         // Create an EditText for the dialog
         final EditText input = new EditText(this);
@@ -166,12 +167,17 @@ public class AlbumViewActivity extends AppCompatActivity implements PhotoAdapter
         if (photos.isEmpty()) {
             emptyAlbumTextView.setVisibility(View.VISIBLE);
             photosRecyclerView.setVisibility(View.GONE);
+            // Update slideshow button state
+            slideshowButton.setEnabled(false);
         } else {
             emptyAlbumTextView.setVisibility(View.GONE);
             photosRecyclerView.setVisibility(View.VISIBLE);
+            // Update slideshow button state
+            slideshowButton.setEnabled(true);
 
             if (photoAdapter == null) {
                 photoAdapter = new PhotoAdapter(photos, this, this);
+                photoAdapter.setCurrentAlbum(album);
                 photosRecyclerView.setAdapter(photoAdapter);
             } else {
                 photoAdapter.updatePhotos(photos);
@@ -216,7 +222,7 @@ public class AlbumViewActivity extends AppCompatActivity implements PhotoAdapter
         album.removePhoto(photo);
 
         // Update adapter
-        photoAdapter.removePhoto(position);
+        photoAdapter.removePhoto(photo);
 
         // Save changes
         albumManager.saveAlbum(album);
@@ -260,5 +266,30 @@ public class AlbumViewActivity extends AppCompatActivity implements PhotoAdapter
     public void onTagClick(String tagId, Photo photo) {
         // Future: Filter photos by tag or show tag details
         Toast.makeText(this, "Tag: " + tagId, Toast.LENGTH_SHORT).show();
+    }
+
+    @Override
+    public void onMovePhoto(Photo photo, int position) {
+        // Show dialog to select destination album
+        MovePhotoDialog dialog = MovePhotoDialog.newInstance(photo, album);
+        dialog.show(getSupportFragmentManager(), "MovePhotoDialog");
+    }
+
+    @Override
+    public void onPhotoMoved(Photo photo, Album sourceAlbum, Album destinationAlbum) {
+        // Remove photo from source album
+        sourceAlbum.removePhoto(photo);
+
+        // Add photo to destination album
+        destinationAlbum.addPhoto(photo);
+
+        // Save both albums
+        albumManager.saveAlbum(sourceAlbum);
+        albumManager.saveAlbum(destinationAlbum);
+
+        // Update UI
+        updateAlbumInfo();
+
+        Toast.makeText(this, "Photo moved to " + destinationAlbum.getName(), Toast.LENGTH_SHORT).show();
     }
 }
