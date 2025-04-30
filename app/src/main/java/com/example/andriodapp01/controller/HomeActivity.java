@@ -4,11 +4,13 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.ImageButton;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import com.example.andriodapp01.R;
 import com.example.andriodapp01.model.AlbumAdapter;
@@ -18,6 +20,9 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import java.util.List;
+import java.util.Comparator;
+import java.util.ArrayList;
+import java.util.stream.Collectors;
 
 public class HomeActivity extends AppCompatActivity implements AlbumAdapter.OnAlbumActionListener {
 
@@ -26,6 +31,9 @@ public class HomeActivity extends AppCompatActivity implements AlbumAdapter.OnAl
     private FloatingActionButton fabAdd;
     private ImageButton btnSearch;
     private AlbumManager albumManager;
+    private SwipeRefreshLayout swipeRefreshLayout;
+    private TextView emptyStateTextView;
+    private String currentFilter = "";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -39,6 +47,9 @@ public class HomeActivity extends AppCompatActivity implements AlbumAdapter.OnAl
         albumRecyclerView = findViewById(R.id.albumRecyclerView);
         fabAdd = findViewById(R.id.fabAdd);
         btnSearch = findViewById(R.id.btnSearch);
+        // Initialize additional views
+        swipeRefreshLayout = findViewById(R.id.swipeRefreshLayout);
+        emptyStateTextView = findViewById(R.id.emptyStateTextView);
 
         // Set up RecyclerView
         albumRecyclerView.setLayoutManager(new GridLayoutManager(this, 2));
@@ -55,6 +66,12 @@ public class HomeActivity extends AppCompatActivity implements AlbumAdapter.OnAl
             // Launch SearchActivity when Search button is clicked
             Intent intent = new Intent(HomeActivity.this, SearchActivity.class);
             startActivity(intent);
+        });
+
+        // Setup pull-to-refresh
+        swipeRefreshLayout.setOnRefreshListener(() -> {
+            loadAlbums();
+            swipeRefreshLayout.setRefreshing(false);
         });
     }
 
@@ -77,7 +94,27 @@ public class HomeActivity extends AppCompatActivity implements AlbumAdapter.OnAl
         // Get albums from AlbumManager
         List<Album> albums = albumManager.getAlbums();
 
-        // Initialize adapter if needed or update existing one
+        // Apply filter if exists
+        if (!currentFilter.isEmpty()) {
+            String filterLower = currentFilter.toLowerCase();
+            albums = albums.stream()
+                    .filter(album -> album.getName().toLowerCase().contains(filterLower))
+                    .collect(Collectors.toList());
+        }
+
+        // Update empty state visibility
+        if (albums.isEmpty()) {
+            emptyStateTextView.setVisibility(View.VISIBLE);
+            albumRecyclerView.setVisibility(View.GONE);
+            emptyStateTextView.setText(currentFilter.isEmpty() ? 
+                    "No albums yet. Create one!" : 
+                    "No albums match your filter.");
+        } else {
+            emptyStateTextView.setVisibility(View.GONE);
+            albumRecyclerView.setVisibility(View.VISIBLE);
+        }
+
+        // Update adapter
         if (albumAdapter == null) {
             albumAdapter = new AlbumAdapter(albums, this, this); // Pass 'this' as the listener
             albumRecyclerView.setAdapter(albumAdapter);
@@ -109,5 +146,56 @@ public class HomeActivity extends AppCompatActivity implements AlbumAdapter.OnAl
 
         // Show confirmation to user
         Toast.makeText(this, "Album \"" + album.getName() + "\" deleted", Toast.LENGTH_SHORT).show();
+    }
+
+    // Add methods for sorting and filtering
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.home_menu, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        List<Album> albums = new ArrayList<>(albumAdapter.getAlbums());
+
+        switch (item.getItemId()) {
+            case R.id.sort_name_asc:
+                albums.sort(Comparator.comparing(Album::getName));
+                albumAdapter.updateAlbums(albums);
+                return true;
+            case R.id.sort_name_desc:
+                albums.sort(Comparator.comparing(Album::getName).reversed());
+                albumAdapter.updateAlbums(albums);
+                return true;
+            case R.id.sort_date:
+                albums.sort(Comparator.comparing(Album::getCreationDate).reversed());
+                albumAdapter.updateAlbums(albums);
+                return true;
+            case R.id.filter:
+                showFilterDialog();
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+    }
+
+    private void showFilterDialog() {
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_filter, null);
+        android.widget.EditText filterInput = dialogView.findViewById(R.id.filterInput);
+        filterInput.setText(currentFilter);
+
+        new MaterialAlertDialogBuilder(this)
+            .setTitle("Filter Albums")
+            .setView(dialogView)
+            .setPositiveButton("Apply", (dialog, which) -> {
+                currentFilter = filterInput.getText().toString().trim();
+                loadAlbums();
+            })
+            .setNegativeButton("Clear", (dialog, which) -> {
+                currentFilter = "";
+                loadAlbums();
+            })
+            .show();
     }
 }
