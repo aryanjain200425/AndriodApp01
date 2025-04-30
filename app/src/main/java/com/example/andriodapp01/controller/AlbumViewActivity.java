@@ -346,18 +346,20 @@ public class AlbumViewActivity extends AppCompatActivity implements
     public void onPhotoMoved(Photo photo, Album sourceAlbum, Album destinationAlbum) {
         // Remove photo from source album
         sourceAlbum.removePhoto(photo);
-
+        
         // Add photo to destination album
         destinationAlbum.addPhoto(photo);
-
+        
         // Save both albums
         albumManager.saveAlbum(sourceAlbum);
         albumManager.saveAlbum(destinationAlbum);
-
+        
         // Update UI
         updateAlbumInfo();
-
-        Toast.makeText(this, "Photo moved to " + destinationAlbum.getName(), Toast.LENGTH_SHORT).show();
+        
+        Toast.makeText(this, 
+            "Photo moved to " + destinationAlbum.getName(), 
+            Toast.LENGTH_SHORT).show();
     }
 
     private void setupSortingMenu() {
