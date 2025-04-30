@@ -88,9 +88,9 @@ public class PhotoAdapter extends RecyclerView.Adapter<PhotoAdapter.PhotoViewHol
             }
         });
 
-        holder.btnMovePhoto.setOnClickListener(v -> {
-            if (listener != null && currentAlbum != null) {
-                listener.onMovePhoto(photo, adapterPosition);
+        holder.moveButton.setOnClickListener(v -> {
+            if (listener != null) {
+                listener.onMovePhoto(photo, position);
             }
         });
 
