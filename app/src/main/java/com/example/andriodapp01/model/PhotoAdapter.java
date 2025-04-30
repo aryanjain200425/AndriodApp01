@@ -109,14 +109,12 @@ public class PhotoAdapter extends RecyclerView.Adapter<PhotoAdapter.PhotoViewHol
         if (tagIds != null && !tagIds.isEmpty()) {
             holder.tagChipGroup.setVisibility(View.VISIBLE);
 
-            // Add tag chips dynamically based on photo.getTagIds()
             for (String tagId : tagIds) {
-                // Get the actual tag from TagManager
                 Tag tag = tagManager.getTagById(tagId);
-                if (tag == null) continue; // Skip if tag not found
+                if (tag == null) continue;
 
                 Chip chip = new Chip(context);
-                chip.setText(tag.getName()); // Use tag.getName() to display "type:value" format
+                chip.setText(tag.getName());
                 chip.setCloseIconVisible(true);
                 chip.setClickable(true);
 
@@ -127,17 +125,17 @@ public class PhotoAdapter extends RecyclerView.Adapter<PhotoAdapter.PhotoViewHol
                     }
                 });
 
-                // Handle close icon clicks (to remove tags)
+                // Handle delete
                 chip.setOnCloseIconClickListener(v -> {
                     photo.removeTagId(tagId);
                     holder.tagChipGroup.removeView(chip);
 
-                    // If no tags left, hide the chip group
+                    // Hide chip group if no tags left
                     if (photo.getTagIds().isEmpty()) {
                         holder.tagChipGroup.setVisibility(View.GONE);
                     }
 
-                    // Save changes if part of an album
+                    // Save changes
                     if (currentAlbum != null) {
                         AlbumManager.getInstance(context).saveAlbum(currentAlbum);
                     }
