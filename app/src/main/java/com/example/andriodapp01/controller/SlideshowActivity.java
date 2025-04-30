@@ -1,11 +1,15 @@
 package com.example.andriodapp01.controller;
 
+import android.animation.ObjectAnimator;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.view.MenuItem;
+import android.view.MotionEvent;
 import android.view.View;
+import android.view.animation.AlphaAnimation;
+import android.view.animation.Animation;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -13,6 +17,7 @@ import android.widget.TextView;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+import androidx.core.view.GestureDetectorCompat;
 
 import com.example.andriodapp01.R;
 import com.example.andriodapp01.model.Album;
@@ -34,6 +39,10 @@ public class SlideshowActivity extends AppCompatActivity {
     private TextView photoPositionTextView;
     private ImageButton previousButton;
     private ImageButton nextButton;
+
+    // Add after initializing views
+    private GestureDetectorCompat gestureDetector;
+    private TextView captionTextView;
 
     /**
      * Helper method to start this activity
@@ -90,10 +99,34 @@ public class SlideshowActivity extends AppCompatActivity {
         photoPositionTextView = findViewById(R.id.photoPositionTextView);
         previousButton = findViewById(R.id.previousButton);
         nextButton = findViewById(R.id.nextButton);
+        captionTextView = findViewById(R.id.captionTextView); // Assuming you have a TextView for captions
 
         // Set up click listeners
         previousButton.setOnClickListener(v -> showPreviousPhoto());
         nextButton.setOnClickListener(v -> showNextPhoto());
+
+        // Initialize gesture detector
+        gestureDetector = new GestureDetectorCompat(this, new GestureDetector.SimpleOnGestureListener() {
+            @Override
+            public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+                float diffX = e2.getX() - e1.getX();
+                if (Math.abs(diffX) > Math.abs(velocityY)) {
+                    if (diffX > 0) {
+                        showPreviousPhoto();
+                    } else {
+                        showNextPhoto();
+                    }
+                    return true;
+                }
+                return false;
+            }
+        });
+
+        // Set touch listener for image view
+        slideshowImageView.setOnTouchListener((v, event) -> gestureDetector.onTouchEvent(event));
+        
+        // Add rotation animation when changing photos
+        slideshowImageView.setOnClickListener(v -> rotatePhoto());
 
         // Show first photo
         showCurrentPhoto();
@@ -109,17 +142,39 @@ public class SlideshowActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
+    private void rotatePhoto() {
+        ObjectAnimator rotation = ObjectAnimator.ofFloat(slideshowImageView, "rotation", 0f, 360f);
+        rotation.setDuration(1000);
+        rotation.start();
+    }
+
     private void showCurrentPhoto() {
         if (currentPhotoIndex >= 0 && currentPhotoIndex < photos.size()) {
             Photo photo = photos.get(currentPhotoIndex);
             Bitmap bitmap = photo.getBitmap();
             if (bitmap != null) {
                 slideshowImageView.setImageBitmap(bitmap);
+                
+                // Add fade-in animation
+                slideshowImageView.setAlpha(0f);
+                slideshowImageView.animate()
+                    .alpha(1f)
+                    .setDuration(500)
+                    .start();
             }
 
             // Update position text
             String positionText = (currentPhotoIndex + 1) + " of " + photos.size();
             photoPositionTextView.setText(positionText);
+            
+            // Show photo caption if available
+            String caption = photo.getCaption();
+            if (caption != null && !caption.isEmpty()) {
+                captionTextView.setVisibility(View.VISIBLE);
+                captionTextView.setText(caption);
+            } else {
+                captionTextView.setVisibility(View.GONE);
+            }
         }
     }
 
