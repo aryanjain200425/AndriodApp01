@@ -5,10 +5,12 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.text.InputType;
+import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.SearchView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -29,9 +31,12 @@ import com.example.andriodapp01.model.Tag;
 import com.example.andriodapp01.model.TagManager;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.android.material.appbar.MaterialToolbar;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class AlbumViewActivity extends AppCompatActivity implements
         PhotoAdapter.OnPhotoActionListener,
@@ -60,6 +65,14 @@ public class AlbumViewActivity extends AppCompatActivity implements
             new ActivityResultContracts.GetContent(),
             this::handleSelectedPhoto
     );
+
+    // Add these fields after existing field declarations
+    private boolean isSelectionMode = false;
+    private Set<Photo> selectedPhotos = new HashSet<>();
+    private MenuItem sortMenuItem;
+    private MenuItem batchDeleteMenuItem;
+    private MenuItem batchMoveMenuItem;
+    private SearchView searchView;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -120,6 +133,8 @@ public class AlbumViewActivity extends AppCompatActivity implements
         fabAddPhoto.setOnClickListener(v -> {
             photoPickerLauncher.launch("image/*");
         });
+
+        setupSortingMenu();
     }
 
     // Add method to start the SearchActivity
@@ -365,5 +380,110 @@ public class AlbumViewActivity extends AppCompatActivity implements
         updateAlbumInfo();
 
         Toast.makeText(this, "Photo moved to " + destinationAlbum.getName(), Toast.LENGTH_SHORT).show();
+    }
+
+    private void setupSortingMenu() {
+        MaterialToolbar toolbar = findViewById(R.id.albumToolbar);
+        toolbar.inflateMenu(R.menu.album_view_menu);
+        Menu menu = toolbar.getMenu();
+        
+        sortMenuItem = menu.findItem(R.id.action_sort);
+        batchDeleteMenuItem = menu.findItem(R.id.action_batch_delete);
+        batchMoveMenuItem = menu.findItem(R.id.action_batch_move);
+        
+        sortMenuItem.setOnMenuItemClickListener(item -> {
+            showSortDialog();
+            return true;
+        });
+    }
+
+    private void showSortDialog() {
+        String[] sortOptions = {"Date (Newest First)", "Date (Oldest First)", "Tags (A-Z)", "Tags (Z-A)"};
+        
+        new MaterialAlertDialogBuilder(this)
+            .setTitle("Sort Photos")
+            .setItems(sortOptions, (dialog, which) -> {
+                switch (which) {
+                    case 0:
+                        sortPhotosByDate(true);
+                        break;
+                    case 1:
+                        sortPhotosByDate(false);
+                        break;
+                    case 2:
+                        sortPhotosByTags(true);
+                        break;
+                    case 3:
+                        sortPhotosByTags(false);
+                        break;
+                }
+            })
+            .show();
+    }
+
+    private void sortPhotosByDate(boolean newestFirst) {
+        List<Photo> photos = album.getPhotos();
+        if (newestFirst) {
+            photos.sort((p1, p2) -> Long.compare(p2.getCreationDate(), p1.getCreationDate()));
+        } else {
+            photos.sort((p1, p2) -> Long.compare(p1.getCreationDate(), p2.getCreationDate()));
+        }
+        photoAdapter.updatePhotos(photos);
+        albumManager.saveAlbum(album);
+    }
+
+    private void sortPhotosByTags(boolean ascending) {
+        List<Photo> photos = album.getPhotos();
+        photos.sort((p1, p2) -> {
+            String tags1 = getPhotoTagsString(p1);
+            String tags2 = getPhotoTagsString(p2);
+            return ascending ? tags1.compareTo(tags2) : tags2.compareTo(tags1);
+        });
+        photoAdapter.updatePhotos(photos);
+        albumManager.saveAlbum(album);
+    }
+
+    private String getPhotoTagsString(Photo photo) {
+        StringBuilder tags = new StringBuilder();
+        for (String tagId : photo.getTagIds()) {
+            Tag tag = tagManager.getTagById(tagId);
+            if (tag != null) {
+                tags.append(tag.getValue());
+            }
+        }
+        return tags.toString();
+    }
+
+    // Add batch operation methods
+    private void toggleSelectionMode() {
+        isSelectionMode = !isSelectionMode;
+        selectedPhotos.clear();
+        
+        batchDeleteMenuItem.setVisible(isSelectionMode);
+        batchMoveMenuItem.setVisible(isSelectionMode);
+        photoAdapter.setSelectionMode(isSelectionMode);
+        
+        // Update FAB to show different icon in selection mode
+        fabAddPhoto.setImageResource(isSelectionMode ? 
+            R.drawable.ic_close : 
+            R.drawable.ic_add_photo);
+    }
+
+    private void performBatchDelete() {
+        if (selectedPhotos.isEmpty()) return;
+        
+        new MaterialAlertDialogBuilder(this)
+            .setTitle("Delete Selected Photos")
+            .setMessage("Delete " + selectedPhotos.size() + " selected photos?")
+            .setPositiveButton("Delete", (dialog, which) -> {
+                for (Photo photo : selectedPhotos) {
+                    album.removePhoto(photo);
+                }
+                albumManager.saveAlbum(album);
+                updateAlbumInfo();
+                toggleSelectionMode();
+            })
+            .setNegativeButton("Cancel", null)
+            .show();
     }
 }
