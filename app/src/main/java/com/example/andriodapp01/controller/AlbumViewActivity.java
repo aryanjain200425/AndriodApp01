@@ -289,38 +289,22 @@ public class AlbumViewActivity extends AppCompatActivity implements
         new MaterialAlertDialogBuilder(this)
                 .setTitle("Add Tag")
                 .setItems(tagTypes, (dialog, which) -> {
-                    switch (which) {
-                        case 0: // Person
-                            showTagInputDialog(photo, position, Tag.TYPE_PERSON);
-                            break;
-                        case 1: // Location
-                            showTagInputDialog(photo, position, Tag.TYPE_LOCATION);
-                            break;
-                    }
+                    String tagType = which == 0 ? Tag.TYPE_PERSON : Tag.TYPE_LOCATION;
+                    showTagInputDialog(photo, position, tagType);
                 })
-                .setNegativeButton("Cancel", null)
                 .show();
     }
 
     private void showTagInputDialog(Photo photo, int position, String tagType) {
-        showTagInputDialog(photo, position, tagType, false);
-    }
-
-    private void showTagInputDialog(Photo photo, int position, String tagType, boolean showNextType) {
-        // Create an EditText with prefix
         View dialogView = getLayoutInflater().inflate(R.layout.dialog_tag_input, null);
         TextView prefixTextView = dialogView.findViewById(R.id.prefixTextView);
         EditText valueEditText = dialogView.findViewById(R.id.valueEditText);
 
-        // Set the prefix based on tag type
         String prefix = tagType + ":";
         prefixTextView.setText(prefix);
 
-        // Set title based on tag type
-        String title = tagType.equals(Tag.TYPE_PERSON) ? "Add Person Tag" : "Add Location Tag";
-
         new MaterialAlertDialogBuilder(this)
-                .setTitle(title)
+                .setTitle("Add " + tagType.substring(0, 1).toUpperCase() + tagType.substring(1) + " Tag")
                 .setView(dialogView)
                 .setPositiveButton("Add", (dialog, which) -> {
                     String value = valueEditText.getText().toString().trim();
@@ -328,19 +312,13 @@ public class AlbumViewActivity extends AppCompatActivity implements
                         // Create and add tag
                         Tag tag = tagManager.createTag(tagType, value);
                         photo.addTagId(tag.getId());
-
-                        // Save album with updated photo
+                        
+                        // Save changes
                         albumManager.saveAlbum(album);
-
+                        
                         // Update UI
                         photoAdapter.notifyItemChanged(position);
-
-                        // If we need to show the next tag type (for "Both" option)
-                        if (showNextType) {
-                            showTagInputDialog(photo, position, Tag.TYPE_LOCATION);
-                        } else {
-                            Toast.makeText(this, "Tag added", Toast.LENGTH_SHORT).show();
-                        }
+                        Toast.makeText(this, "Tag added", Toast.LENGTH_SHORT).show();
                     }
                 })
                 .setNegativeButton("Cancel", null)
