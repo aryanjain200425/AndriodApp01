@@ -55,7 +55,6 @@ public class AlbumViewActivity extends AppCompatActivity implements
     private ImageButton btnBack;
     private ImageButton btnSearch;
 
-    // Activity result launcher for selecting photos
     private final ActivityResultLauncher<String> photoPickerLauncher = registerForActivityResult(
             new ActivityResultContracts.GetContent(),
             this::handleSelectedPhoto
