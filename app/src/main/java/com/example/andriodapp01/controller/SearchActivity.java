@@ -1,5 +1,6 @@
 package com.example.andriodapp01.controller;
 
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -8,6 +9,7 @@ import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.RadioButton;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -24,21 +26,33 @@ import com.example.andriodapp01.model.Photo;
 import com.example.andriodapp01.model.PhotoAdapter;
 import com.example.andriodapp01.model.Tag;
 import com.example.andriodapp01.model.TagManager;
+import com.google.android.material.chip.Chip;
+import com.google.android.material.chip.ChipGroup;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 public class SearchActivity extends AppCompatActivity implements PhotoAdapter.OnPhotoActionListener {
 
+    private static final String SEARCH_HISTORY_PREF = "search_history";
+    private static final int MAX_HISTORY_ITEMS = 10;
+    private static final int MIN_SEARCH_LENGTH = 2;
+    private static final double SIMILARITY_THRESHOLD = 0.8;
     private AutoCompleteTextView personAutoComplete;
     private AutoCompleteTextView locationAutoComplete;
     private RadioButton radioAnd;
     private RecyclerView searchResultsRecyclerView;
     private TextView resultsHeaderText;
     private Button btnPerformSearch;
+    private ImageButton clearSearchButton;
+    private Button showHistoryButton;
 
     private AlbumManager albumManager;
     private TagManager tagManager;
@@ -62,6 +76,8 @@ public class SearchActivity extends AppCompatActivity implements PhotoAdapter.On
         searchResultsRecyclerView = findViewById(R.id.searchResultsRecyclerView);
         resultsHeaderText = findViewById(R.id.resultsHeaderText);
         btnPerformSearch = findViewById(R.id.btnPerformSearch);
+        clearSearchButton = findViewById(R.id.clearSearchButton);
+        showHistoryButton = findViewById(R.id.showHistoryButton);
 
         // Set up toolbar
         setSupportActionBar(searchToolbar);
@@ -79,6 +95,9 @@ public class SearchActivity extends AppCompatActivity implements PhotoAdapter.On
 
         // Set up search button
         btnPerformSearch.setOnClickListener(v -> performSearch());
+
+        // Set up clear button
+        setupClearButton();
     }
 
     private void setupAutoCompleteAdapters() {
@@ -219,6 +238,14 @@ public class SearchActivity extends AppCompatActivity implements PhotoAdapter.On
             resultsHeaderText.setText(getString(R.string.search_results) + " (" + searchResults.size() + ")");
         }
         resultsHeaderText.setVisibility(View.VISIBLE);
+
+        // After performing the search, save to history
+        if (!personQuery.isEmpty() || !locationQuery.isEmpty()) {
+            saveSearchToHistory(personQuery, locationQuery);
+        }
+
+        // Add fuzzy matching for better results
+        searchResults.addAll(performFuzzySearch(personQuery, locationQuery));
     }
 
     private boolean matchesTag(Photo photo, String tagType, String query) {
@@ -233,6 +260,190 @@ public class SearchActivity extends AppCompatActivity implements PhotoAdapter.On
             }
         }
         return false;
+    }
+
+    private void saveSearchToHistory(String person, String location) {
+        SharedPreferences prefs = getSharedPreferences(SEARCH_HISTORY_PREF, MODE_PRIVATE);
+        Set<String> history = new HashSet<>(prefs.getStringSet("history", new HashSet<>()));
+
+        String searchEntry = person + "|" + location;
+        history.add(searchEntry);
+
+        // Limit history size
+        if (history.size() > MAX_HISTORY_ITEMS) {
+            List<String> historyList = new ArrayList<>(history);
+            history = new HashSet<>(historyList.subList(historyList.size() - MAX_HISTORY_ITEMS, historyList.size()));
+        }
+
+        prefs.edit().putStringSet("history", history).apply();
+    }
+
+    private List<Photo> performFuzzySearch(String person, String location) {
+        List<Photo> fuzzyMatches = new ArrayList<>();
+
+        for (Album album : albumManager.getAlbums()) {
+            for (Photo photo : album.getPhotos()) {
+                if (fuzzyMatchesTags(photo, person, location)) {
+                    fuzzyMatches.add(photo);
+                }
+            }
+        }
+
+        return fuzzyMatches;
+    }
+
+    private boolean fuzzyMatchesTags(Photo photo, String person, String location) {
+        double threshold = SIMILARITY_THRESHOLD; // Similarity threshold
+
+        for (String tagId : photo.getTagIds()) {
+            Tag tag = tagManager.getTagById(tagId);
+            if (tag != null) {
+                if (tag.getType().equals(Tag.TYPE_PERSON) && !person.isEmpty()) {
+                    double similarity = calculateSimilarity(tag.getValue().toLowerCase(), person.toLowerCase());
+                    if (similarity >= threshold) return true;
+                }
+                if (tag.getType().equals(Tag.TYPE_LOCATION) && !location.isEmpty()) {
+                    double similarity = calculateSimilarity(tag.getValue().toLowerCase(), location.toLowerCase());
+                    if (similarity >= threshold) return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private double calculateSimilarity(String s1, String s2) {
+        int distance = levenshteinDistance(s1, s2);
+        int maxLength = Math.max(s1.length(), s2.length());
+        return 1.0 - ((double) distance / maxLength);
+    }
+
+    private int levenshteinDistance(String s1, String s2) {
+        int[][] dp = new int[s1.length() + 1][s2.length() + 1];
+
+        for (int i = 0; i <= s1.length(); i++) {
+            for (int j = 0; j <= s2.length(); j++) {
+                if (i == 0) {
+                    dp[i][j] = j;
+                } else if (j == 0) {
+                    dp[i][j] = i;
+                } else {
+                    dp[i][j] = Math.min(
+                            dp[i - 1][j - 1] + (s1.charAt(i - 1) == s2.charAt(j - 1) ? 0 : 1),
+                            Math.min(dp[i - 1][j] + 1, dp[i][j - 1] + 1)
+                    );
+                }
+            }
+        }
+
+        return dp[s1.length()][s2.length()];
+    }
+
+    private void setupClearButton() {
+        clearSearchButton.setOnClickListener(v -> {
+            personAutoComplete.setText("");
+            locationAutoComplete.setText("");
+            searchResults.clear();
+            photoAdapter.notifyDataSetChanged();
+            resultsHeaderText.setVisibility(View.GONE);
+        });
+    }
+
+    private void showSearchHistory() {
+        SharedPreferences prefs = getSharedPreferences(SEARCH_HISTORY_PREF, MODE_PRIVATE);
+        Set<String> history = prefs.getStringSet("history", new HashSet<>());
+
+        if (history.isEmpty()) {
+            Toast.makeText(this, "No search history", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        List<String> historyList = new ArrayList<>(history);
+        Collections.sort(historyList);
+
+        new MaterialAlertDialogBuilder(this)
+                .setTitle("Search History")
+                .setItems(historyList.toArray(new String[0]), (dialog, which) -> {
+                    String[] parts = historyList.get(which).split("\\|");
+                    personAutoComplete.setText(parts[0]);
+                    locationAutoComplete.setText(parts.length > 1 ? parts[1] : "");
+                    performSearch();
+                })
+                .setNeutralButton("Clear History", (dialog, which) -> {
+                    prefs.edit().clear().apply();
+                    Toast.makeText(this, "Search history cleared", Toast.LENGTH_SHORT).show();
+                })
+                .show();
+    }
+
+    private void setupSearchFilters() {
+        // Add chips for quick filters
+        ChipGroup filterChipGroup = findViewById(R.id.filterChipGroup);
+
+        // Get common tags
+        List<Tag> commonPersonTags = getCommonTags(Tag.TYPE_PERSON, 5);
+        List<Tag> commonLocationTags = getCommonTags(Tag.TYPE_LOCATION, 5);
+
+        // Add person filter chips
+        for (Tag tag : commonPersonTags) {
+            Chip chip = new Chip(this);
+            chip.setText(tag.getValue());
+            chip.setCheckable(true);
+            chip.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                if (isChecked) {
+                    personAutoComplete.setText(tag.getValue());
+                } else if (personAutoComplete.getText().toString().equals(tag.getValue())) {
+                    personAutoComplete.setText("");
+                }
+                performSearch();
+            });
+            filterChipGroup.addView(chip);
+        }
+
+        // Add location filter chips
+        for (Tag tag : commonLocationTags) {
+            Chip chip = new Chip(this);
+            chip.setText(tag.getValue());
+            chip.setCheckable(true);
+            chip.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                if (isChecked) {
+                    locationAutoComplete.setText(tag.getValue());
+                } else if (locationAutoComplete.getText().toString().equals(tag.getValue())) {
+                    locationAutoComplete.setText("");
+                }
+                performSearch();
+            });
+            filterChipGroup.addView(chip);
+        }
+    }
+
+    private List<Tag> getCommonTags(String tagType, int limit) {
+        Map<String, Integer> tagFrequency = new HashMap<>();
+
+        // Count tag occurrences
+        for (Album album : albumManager.getAlbums()) {
+            for (Photo photo : album.getPhotos()) {
+                for (String tagId : photo.getTagIds()) {
+                    Tag tag = tagManager.getTagById(tagId);
+                    if (tag != null && tag.getType().equals(tagType)) {
+                        tagFrequency.merge(tag.getValue(), 1, Integer::sum);
+                    }
+                }
+            }
+        }
+
+        // Sort by frequency and return top results
+        return tagFrequency.entrySet().stream()
+                .sorted(Map.Entry.<String, Integer>comparingByValue().reversed())
+                .limit(limit)
+                .map(entry -> new Tag(tagType, entry.getKey()))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        setupSearchFilters();
+        updateSearchSuggestions();
     }
 
     @Override

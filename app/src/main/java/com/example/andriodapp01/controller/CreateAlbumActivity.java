@@ -1,14 +1,18 @@
 package com.example.andriodapp01.controller;
 
 import android.Manifest;
+import android.app.Dialog;
+import android.app.ProgressDialog;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -17,8 +21,10 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.GridLayoutManager;
+import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.bumptech.glide.Glide;
 import com.example.andriodapp01.R;
 import com.example.andriodapp01.model.SelectedPhotosAdapter;
 import com.example.andriodapp01.model.Album;
@@ -26,12 +32,17 @@ import com.example.andriodapp01.model.Photo;
 import com.example.andriodapp01.model.AlbumManager;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class CreateAlbumActivity extends AppCompatActivity {
 
     private static final int PICK_IMAGES_REQUEST = 1;
     private static final int PERMISSION_REQUEST_READ_MEDIA_IMAGES = 2;
+    private static final int MAX_PHOTOS = 20;
+    private static final int MIN_ALBUM_NAME_LENGTH = 3;
+    private ProgressDialog progressDialog;
+    private ItemTouchHelper itemTouchHelper;
 
     private EditText albumNameInput;
     private RecyclerView selectedPhotosRecyclerView;
@@ -41,6 +52,7 @@ public class CreateAlbumActivity extends AppCompatActivity {
     private List<Photo> selectedPhotos = new ArrayList<>();
     private List<Uri> selectedPhotoUris = new ArrayList<>(); // Store URIs temporarily
     private SelectedPhotosAdapter selectedPhotosAdapter;
+    private boolean isSaving = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -72,6 +84,8 @@ public class CreateAlbumActivity extends AppCompatActivity {
                 saveAlbum();
             }
         });
+
+        setupDragAndDrop();
     }
 
     private void checkPermissionAndPickImages() {
@@ -86,9 +100,13 @@ public class CreateAlbumActivity extends AppCompatActivity {
     }
 
     private void openImagePicker() {
-        // Use the modern Photo Picker for Android 14
         Intent intent = new Intent(MediaStore.ACTION_PICK_IMAGES);
-        intent.putExtra(MediaStore.EXTRA_PICK_IMAGES_MAX, 10);
+        int remainingSlots = MAX_PHOTOS - selectedPhotoUris.size();
+        if (remainingSlots <= 0) {
+            Toast.makeText(this, "Maximum photo limit reached", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        intent.putExtra(MediaStore.EXTRA_PICK_IMAGES_MAX, remainingSlots);
         startActivityForResult(intent, PICK_IMAGES_REQUEST);
     }
 
@@ -127,48 +145,116 @@ public class CreateAlbumActivity extends AppCompatActivity {
         }
     }
 
-    private void saveAlbum() {
+    private boolean validateInput() {
         String albumName = albumNameInput.getText().toString().trim();
 
-        if (albumName.isEmpty()) {
-            Toast.makeText(this, "Please enter an album name", Toast.LENGTH_SHORT).show();
-            return;
+        if (albumName.length() < MIN_ALBUM_NAME_LENGTH) {
+            albumNameInput.setError("Album name must be at least " + MIN_ALBUM_NAME_LENGTH + " characters");
+            return false;
         }
 
-        AlbumManager albumManager = AlbumManager.getInstance(this);
-        List<Album> existing = albumManager.getAlbums();
-        for (Album a : existing) {
-            if (a.getName().equalsIgnoreCase(albumName)) {
-                Toast.makeText(this, "Album name already taken", Toast.LENGTH_SHORT).show();
-                return;
-            }
+        if (!albumName.matches("^[a-zA-Z0-9\\s]+$")) {
+            albumNameInput.setError("Album name can only contain letters, numbers and spaces");
+            return false;
         }
 
         if (selectedPhotoUris.isEmpty()) {
             Toast.makeText(this, "Please add at least one photo", Toast.LENGTH_SHORT).show();
+            return false;
+        }
+
+        return true;
+    }
+
+    private void saveAlbum() {
+        if (!validateInput() || isSaving) {
             return;
         }
 
-        // Show progress
-        Toast.makeText(this, "Saving album...", Toast.LENGTH_SHORT).show();
+        isSaving = true;
+        String albumName = albumNameInput.getText().toString().trim();
 
-        // Create new album
-        Album album = new Album(albumName);
+        // Show progress dialog
+        progressDialog = new ProgressDialog(this);
+        progressDialog.setMessage("Creating album...");
+        progressDialog.setCancelable(false);
+        progressDialog.show();
 
-        // Save photos to local storage and add to album
-        for (Uri uri : selectedPhotoUris) {
-            Photo photo = new Photo(); // Creates a new photo with unique ID
-            if (photo.savePhotoFromUri(this, uri)) {
-                album.addPhoto(photo);
+        // Create album in background
+        new Thread(() -> {
+            Album album = new Album(albumName);
+
+            // Save photos
+            int total = selectedPhotoUris.size();
+            int current = 0;
+
+            for (Uri uri : selectedPhotoUris) {
+                current++;
+                final int progress = current;
+
+                runOnUiThread(() ->
+                        progressDialog.setMessage("Saving photo " + progress + " of " + total));
+
+                Photo photo = new Photo();
+                if (photo.savePhotoFromUri(this, uri)) {
+                    album.addPhoto(photo);
+                }
             }
-        }
 
-        // Save album using AlbumManager
-        AlbumManager.getInstance(this).saveAlbum(album);
+            // Save album
+            AlbumManager.getInstance(this).saveAlbum(album);
 
-        Toast.makeText(this, "Album created successfully", Toast.LENGTH_SHORT).show();
+            // Update UI on main thread
+            runOnUiThread(() -> {
+                if (progressDialog != null && progressDialog.isShowing()) {
+                    progressDialog.dismiss();
+                }
+                Toast.makeText(this, "Album created successfully", Toast.LENGTH_SHORT).show();
+                isSaving = false;
+                finish();
+            });
+        }).start();
+    }
 
-        // Return to HomeActivity
-        finish();
+    private void setupDragAndDrop() {
+        ItemTouchHelper.Callback callback = new ItemTouchHelper.SimpleCallback(
+                ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT |
+                        ItemTouchHelper.UP | ItemTouchHelper.DOWN, 0) {
+            @Override
+            public boolean onMove(@NonNull RecyclerView recyclerView,
+                                 @NonNull RecyclerView.ViewHolder viewHolder,
+                                 @NonNull RecyclerView.ViewHolder target) {
+                int fromPosition = viewHolder.getAdapterPosition();
+                int toPosition = target.getAdapterPosition();
+
+                Collections.swap(selectedPhotoUris, fromPosition, toPosition);
+                selectedPhotosAdapter.notifyItemMoved(fromPosition, toPosition);
+                return true;
+            }
+
+            @Override
+            public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int direction) {
+                // Not used
+            }
+        };
+
+        itemTouchHelper = new ItemTouchHelper(callback);
+        itemTouchHelper.attachToRecyclerView(selectedPhotosRecyclerView);
+    }
+
+    private void showImagePreview(Uri imageUri) {
+        Dialog dialog = new Dialog(this, android.R.style.Theme_Black_NoTitleBar_Fullscreen);
+        ImageView imageView = new ImageView(this);
+        imageView.setLayoutParams(new ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT));
+
+        Glide.with(this)
+                .load(imageUri)
+                .into(imageView);
+
+        imageView.setOnClickListener(v -> dialog.dismiss());
+        dialog.setContentView(imageView);
+        dialog.show();
     }
 }
