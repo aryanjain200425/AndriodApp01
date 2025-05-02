@@ -72,4 +72,61 @@ public class Tag implements Serializable {
     public int hashCode() {
         return id.hashCode();
     }
+
+    public boolean isValidValue(String newValue) {
+        if (newValue == null || newValue.trim().isEmpty()) {
+            return false;
+        }
+
+        if (TYPE_PERSON.equals(type)) {
+            return !newValue.matches(".*\\d+.*");
+        }
+
+        return true;
+    }
+
+
+    public boolean matchesQuery(String query) {
+        if (query == null || query.trim().isEmpty()) {
+            return false;
+        }
+        
+        String lowercaseQuery = query.toLowerCase();
+        String lowercaseValue = value.toLowerCase();
+        
+        return lowercaseValue.contains(lowercaseQuery);
+    }
+
+
+    public int compareTo(Tag other) {
+        int typeCompare = this.type.compareTo(other.type);
+        if (typeCompare != 0) {
+            return typeCompare;
+        }
+        return this.value.compareToIgnoreCase(other.value);
+    }
+
+
+    public String getDisplayText() {
+        return String.format("%s: %s", 
+            type.substring(0, 1).toUpperCase() + type.substring(1),
+            value);
+    }
+
+    public boolean isEmpty() {
+        return photoIds.isEmpty();
+    }
+
+    public Tag clone() {
+        Tag clone = new Tag(this.type, this.value);
+        clone.id = this.id;
+        clone.photoIds = new ArrayList<>(this.photoIds);
+        return clone;
+    }
+
+    @Override
+    public String toString() {
+        return String.format("Tag{id='%s', type='%s', value='%s', photoCount=%d}", 
+            id, type, value, photoIds.size());
+    }
 }
