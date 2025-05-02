@@ -26,10 +26,16 @@ import com.example.andriodapp01.model.Photo;
 import com.example.andriodapp01.model.PhotoAdapter;
 import com.example.andriodapp01.model.Tag;
 import com.example.andriodapp01.model.TagManager;
+import com.google.android.material.chip.Chip;
+import com.google.android.material.chip.ChipGroup;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -37,6 +43,8 @@ public class SearchActivity extends AppCompatActivity implements PhotoAdapter.On
 
     private static final String SEARCH_HISTORY_PREF = "search_history";
     private static final int MAX_HISTORY_ITEMS = 10;
+    private static final int MIN_SEARCH_LENGTH = 2;
+    private static final double SIMILARITY_THRESHOLD = 0.8;
     private AutoCompleteTextView personAutoComplete;
     private AutoCompleteTextView locationAutoComplete;
     private RadioButton radioAnd;
@@ -285,7 +293,7 @@ public class SearchActivity extends AppCompatActivity implements PhotoAdapter.On
     }
 
     private boolean fuzzyMatchesTags(Photo photo, String person, String location) {
-        double threshold = 0.8; // Similarity threshold
+        double threshold = SIMILARITY_THRESHOLD; // Similarity threshold
 
         for (String tagId : photo.getTagIds()) {
             Tag tag = tagManager.getTagById(tagId);
@@ -338,6 +346,104 @@ public class SearchActivity extends AppCompatActivity implements PhotoAdapter.On
             photoAdapter.notifyDataSetChanged();
             resultsHeaderText.setVisibility(View.GONE);
         });
+    }
+
+    private void showSearchHistory() {
+        SharedPreferences prefs = getSharedPreferences(SEARCH_HISTORY_PREF, MODE_PRIVATE);
+        Set<String> history = prefs.getStringSet("history", new HashSet<>());
+
+        if (history.isEmpty()) {
+            Toast.makeText(this, "No search history", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        List<String> historyList = new ArrayList<>(history);
+        Collections.sort(historyList);
+
+        new MaterialAlertDialogBuilder(this)
+                .setTitle("Search History")
+                .setItems(historyList.toArray(new String[0]), (dialog, which) -> {
+                    String[] parts = historyList.get(which).split("\\|");
+                    personAutoComplete.setText(parts[0]);
+                    locationAutoComplete.setText(parts.length > 1 ? parts[1] : "");
+                    performSearch();
+                })
+                .setNeutralButton("Clear History", (dialog, which) -> {
+                    prefs.edit().clear().apply();
+                    Toast.makeText(this, "Search history cleared", Toast.LENGTH_SHORT).show();
+                })
+                .show();
+    }
+
+    private void setupSearchFilters() {
+        // Add chips for quick filters
+        ChipGroup filterChipGroup = findViewById(R.id.filterChipGroup);
+
+        // Get common tags
+        List<Tag> commonPersonTags = getCommonTags(Tag.TYPE_PERSON, 5);
+        List<Tag> commonLocationTags = getCommonTags(Tag.TYPE_LOCATION, 5);
+
+        // Add person filter chips
+        for (Tag tag : commonPersonTags) {
+            Chip chip = new Chip(this);
+            chip.setText(tag.getValue());
+            chip.setCheckable(true);
+            chip.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                if (isChecked) {
+                    personAutoComplete.setText(tag.getValue());
+                } else if (personAutoComplete.getText().toString().equals(tag.getValue())) {
+                    personAutoComplete.setText("");
+                }
+                performSearch();
+            });
+            filterChipGroup.addView(chip);
+        }
+
+        // Add location filter chips
+        for (Tag tag : commonLocationTags) {
+            Chip chip = new Chip(this);
+            chip.setText(tag.getValue());
+            chip.setCheckable(true);
+            chip.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                if (isChecked) {
+                    locationAutoComplete.setText(tag.getValue());
+                } else if (locationAutoComplete.getText().toString().equals(tag.getValue())) {
+                    locationAutoComplete.setText("");
+                }
+                performSearch();
+            });
+            filterChipGroup.addView(chip);
+        }
+    }
+
+    private List<Tag> getCommonTags(String tagType, int limit) {
+        Map<String, Integer> tagFrequency = new HashMap<>();
+
+        // Count tag occurrences
+        for (Album album : albumManager.getAlbums()) {
+            for (Photo photo : album.getPhotos()) {
+                for (String tagId : photo.getTagIds()) {
+                    Tag tag = tagManager.getTagById(tagId);
+                    if (tag != null && tag.getType().equals(tagType)) {
+                        tagFrequency.merge(tag.getValue(), 1, Integer::sum);
+                    }
+                }
+            }
+        }
+
+        // Sort by frequency and return top results
+        return tagFrequency.entrySet().stream()
+                .sorted(Map.Entry.<String, Integer>comparingByValue().reversed())
+                .limit(limit)
+                .map(entry -> new Tag(tagType, entry.getKey()))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        setupSearchFilters();
+        updateSearchSuggestions();
     }
 
     @Override
