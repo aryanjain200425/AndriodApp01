@@ -240,8 +240,12 @@ public class AlbumViewActivity extends AppCompatActivity implements
 
     @Override
     public void onPhotoClick(Photo photo, int position) {
-        // Future: Open photo detail view
-        Toast.makeText(this, "Photo clicked", Toast.LENGTH_SHORT).show();
+        // Open PhotoDisplayActivity with the selected photo
+        Intent intent = new Intent(this, PhotoDisplayActivity.class);
+        // Pass album ID and photo position
+        intent.putExtra(PhotoDisplayActivity.EXTRA_ALBUM_ID, album.getId());
+        intent.putExtra(PhotoDisplayActivity.EXTRA_PHOTO_POSITION, position);
+        startActivity(intent);
     }
 
     @Override

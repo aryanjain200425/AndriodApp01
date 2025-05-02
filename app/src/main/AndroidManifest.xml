@@ -44,6 +44,12 @@
             android:name=".controller.SearchActivity"
             android:exported="false"
             android:theme="@style/Theme.AndroidApp01"/>
+
+        <activity
+            android:name=".controller.PhotoDisplayActivity"
+            android:exported="false"
+            android:theme="@style/Theme.AndroidApp01"/>
+
     </application>
 
 </manifest>
